@@ -12,20 +12,37 @@ type PlayStore interface {
 
 type PlayServer struct {
 	store PlayStore
+	http.Handler
 }
 
-func (p *PlayServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+func NewPlayServer(store PlayStore) *PlayServer {
+	p := new(PlayServer)
+	p.store = store
+
+	router := http.NewServeMux()
+
+	router.Handle("/league", http.HandlerFunc(p.leagueHandler))
+	router.Handle("/players/", http.HandlerFunc(p.playersHandler))
+	p.Handler = router
+	return p
+}
+
+func (p *PlayServer) leagueHandler(w http.ResponseWriter, r *http.Request) {
+	w.WriteHeader(http.StatusOK)
+}
+
+func (p *PlayServer) playersHandler(w http.ResponseWriter, r *http.Request) {
+	player := r.URL.Path[len("/players/"):]
+
 	switch r.Method {
 	case http.MethodPost:
-		p.processWin(w, r)
+		p.processWin(w, player)
 	case http.MethodGet:
-		p.showScore(w, r)
+		p.showScore(w, player)
 	}
-
 }
 
-func (p *PlayServer) showScore(w http.ResponseWriter, r *http.Request) {
-	player := r.URL.Path[len("/players/"):]
+func (p *PlayServer) showScore(w http.ResponseWriter, player string) {
 
 	score := p.store.GetPlayerScore(player)
 
@@ -36,9 +53,7 @@ func (p *PlayServer) showScore(w http.ResponseWriter, r *http.Request) {
 	fmt.Fprint(w, score)
 }
 
-func (p *PlayServer) processWin(w http.ResponseWriter, r *http.Request) {
-
-	player := r.URL.Path[len("/players/"):]
+func (p *PlayServer) processWin(w http.ResponseWriter, player string) {
 
 	p.store.RecordWin(player)
 	w.WriteHeader(http.StatusAccepted)

@@ -12,12 +12,11 @@ type Handler interface {
 }**/
 
 func TestPlayerServer(t *testing.T) {
-	server := &PlayServer{&StubPlayerStore{map[string]int{
+	server := NewPlayServer(&StubPlayerStore{map[string]int{
 		"haha": 20,
 		"baba": 10,
-	},
-		nil,
-	}}
+	}, nil})
+
 	t.Run("test haha", func(t *testing.T) {
 		request := newGetScoreRequest("haha")
 
@@ -57,7 +56,7 @@ func TestStoreWins(t *testing.T) {
 	store := StubPlayerStore{
 		map[string]int{}, nil,
 	}
-	server := &PlayServer{&store}
+	server := NewPlayServer(&store)
 
 	t.Run("it return accept on post", func(t *testing.T) {
 		player := "Pepper"
@@ -81,7 +80,7 @@ func TestStoreWins(t *testing.T) {
 
 func TestRecordingWinsRetrivingThem(t *testing.T) {
 	store := NewInMemoryPlayerStore()
-	server := PlayServer{store}
+	server := NewPlayServer(store)
 	player := "haha"
 	server.ServeHTTP(httptest.NewRecorder(), newPostWinRequest(player))
 	server.ServeHTTP(httptest.NewRecorder(), newPostWinRequest(player))
@@ -115,4 +114,17 @@ func newGetScoreRequest(name string) *http.Request {
 func newPostWinRequest(name string) *http.Request {
 	request, _ := http.NewRequest(http.MethodPost, "/players/"+name, nil)
 	return request
+}
+
+func TestLeague(t *testing.T) {
+	store := StubPlayerStore{}
+	server := NewPlayServer(&store)
+
+	t.Run("return 200", func(t *testing.T) {
+		request, _ := http.NewRequest(http.MethodGet, "/league", nil)
+		response := httptest.NewRecorder()
+		server.ServeHTTP(response, request)
+
+		assertStatus(t, response.Code, http.StatusOK)
+	})
 }

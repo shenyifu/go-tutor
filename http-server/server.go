@@ -22,7 +22,7 @@ func (i *InMemoryPlayerStore) RecordWin(name string) {
 }
 
 func main() {
-	handler := &PlayServer{NewInMemoryPlayerStore()}
+	handler := NewPlayServer(NewInMemoryPlayerStore())
 	if err := http.ListenAndServe(":5000", handler); err != nil {
 		log.Fatalf("could not listen to port %v", err)
 	}
