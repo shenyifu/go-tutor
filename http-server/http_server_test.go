@@ -1,8 +1,10 @@
 package main
 
 import (
+	"encoding/json"
 	"net/http"
 	"net/http/httptest"
+	"reflect"
 	"testing"
 )
 
@@ -15,7 +17,7 @@ func TestPlayerServer(t *testing.T) {
 	server := NewPlayServer(&StubPlayerStore{map[string]int{
 		"haha": 20,
 		"baba": 10,
-	}, nil})
+	}, nil, nil})
 
 	t.Run("test haha", func(t *testing.T) {
 		request := newGetScoreRequest("haha")
@@ -54,7 +56,7 @@ func TestPlayerServer(t *testing.T) {
 
 func TestStoreWins(t *testing.T) {
 	store := StubPlayerStore{
-		map[string]int{}, nil,
+		map[string]int{}, nil, nil,
 	}
 	server := NewPlayServer(&store)
 
@@ -117,14 +119,34 @@ func newPostWinRequest(name string) *http.Request {
 }
 
 func TestLeague(t *testing.T) {
-	store := StubPlayerStore{}
-	server := NewPlayServer(&store)
 
-	t.Run("return 200", func(t *testing.T) {
+	t.Run("it returns the league table as JSON", func(t *testing.T) {
+		wantedLeague := []Player{
+			{"Cleo", 32},
+			{"Chris", 20},
+			{"Tiest", 14},
+		}
+
+		store := StubPlayerStore{nil, nil, wantedLeague}
+		server := NewPlayServer(&store)
+
 		request, _ := http.NewRequest(http.MethodGet, "/league", nil)
 		response := httptest.NewRecorder()
+
 		server.ServeHTTP(response, request)
 
+		var got []Player
+
+		err := json.NewDecoder(response.Body).Decode(&got)
+
+		if err != nil {
+			t.Fatalf("Unable to parse response from server '%s' into slice of Player, '%v'", response.Body, err)
+		}
+
 		assertStatus(t, response.Code, http.StatusOK)
+
+		if !reflect.DeepEqual(got, wantedLeague) {
+			t.Errorf("got %v want %v", got, wantedLeague)
+		}
 	})
 }
