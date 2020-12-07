@@ -3,12 +3,33 @@ package main
 import (
 	"encoding/json"
 	"fmt"
+	"io"
 	"net/http"
 )
 
 type Player struct {
 	Name string
 	Wins int
+}
+
+type FileSystemStore struct {
+	database io.ReadSeeker
+}
+
+type FileSystemPlayerStore struct {
+	database io.ReadSeeker
+}
+
+func (f *FileSystemPlayerStore) GetPlayerScore(name string) int {
+	return 0
+}
+
+func (f *FileSystemStore) ShowLeague() []Player {
+	f.database.Seek(0, 0)
+
+	var league []Player
+	json.NewDecoder(f.database).Decode(&league)
+	return league
 }
 
 type PlayStore interface {

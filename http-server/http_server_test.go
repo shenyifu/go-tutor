@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"reflect"
+	"strings"
 	"testing"
 )
 
@@ -149,4 +150,31 @@ func TestLeague(t *testing.T) {
 			t.Errorf("got %v want %v", got, wantedLeague)
 		}
 	})
+}
+
+func TestFileSystemStore(t *testing.T) {
+	t.Run("league from a reader", func(t *testing.T) {
+		database := strings.NewReader(`[
+			{"Name": "Cleo", "Wins": 10},
+			{"Name": "Chris", "Wins": 33}]`)
+		store := FileSystemStore{database}
+
+		got := store.ShowLeague()
+		want := []Player{
+			{"Cleo", 10},
+			{"Chris", 33},
+		}
+
+		assertLeague(t, got, want)
+		got = store.ShowLeague()
+		assertLeague(t, got, want)
+
+	})
+}
+
+func assertLeague(t *testing.T, got, want []Player) {
+	t.Helper()
+	if !reflect.DeepEqual(got, want) {
+		t.Errorf("got %v want %v", got, want)
+	}
 }
